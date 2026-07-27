@@ -2,7 +2,6 @@ import os
 import requests
 from datetime import datetime
 from dotenv import load_dotenv
-
 from langchain.chat_models import init_chat_model
 from langchain.agents import create_agent
 from langchain.tools import tool
@@ -15,13 +14,16 @@ from langgraph.checkpoint.memory import InMemorySaver
 load_dotenv()
 
 
-
 @tool
 def get_weather(city: str) -> str:
-    """Get weather for a given city with description temperature and humidity."""     # docstring, it is description which tells the model what the toll does and when to use this function
+    # docstring, it is description which tells the model what the toll does and when to use this function
+    """Get weather for a given city with description temperature and humidity."""     
 
-    weather_api_key = os.getenv("OPEN_WEATHER_API_KEY")
-    url = f"https://api.openweathermap.org/data/2.5/weather?q={city}&appid={weather_api_key}&units=metric"       # units=metric will give temperature in degree
+    weather_api_key = os.getenv("OPEN_WEATHER_API_KEY")     # fetch api key from .env
+    if not weather_api_key:
+        return "Api key is not present"
+    
+    url = f"https://api.openweathermap.org/data/2.5/weather?q={city}&appid={weather_api_key}&units=metric"    # units=metric will give temperature in degree
     response = requests.get(url)
    
     data = response.json()
@@ -47,14 +49,21 @@ def convert_currency(from_currency: str, to_currency: str, amount: int) -> str |
     """
 
     exchangerate_api_key = os.getenv("EXCHANGERATE_API_KEY")    # fetch api key from .env
+    if not exchangerate_api_key:
+        return "Api key is not present"
+    
     url=f"https://api.exchangerate.host/convert?access_key={exchangerate_api_key}&from={from_currency}&to={to_currency}&amount={amount}"
 
-    response = requests.get(url)
-    if response.status_code != 200:     # success response is 200
+
+    try:
+        response = requests.get(url, timeout=10)
+        if response.status_code != 200:     # success response is 200
+            return "Error occured while API call"
+        else:
+            data = response.json()
+            return data["result"]
+    except:
         return "Error occured while API call"
-    else:
-        data = response.json()
-        return data["result"]
 
 
 
@@ -62,7 +71,6 @@ def convert_currency(from_currency: str, to_currency: str, amount: int) -> str |
 def current_date() -> str:
     """Get current date"""
     return datetime.now().strftime("%d-%m-%Y")
-
 
 
 @tool
@@ -108,7 +116,7 @@ thread_config = {"configurable": {"thread_id": str(uuid7())}}   # uuid7() genera
 
 user_input = input("You: ")
 while(user_input.strip() != "bye"):
-    print("Gemini: ", end="")
+    print("Agent: ", end="")
     for chunk, metadata in agent.stream(
         {"messages": [HumanMessage(content=user_input)]},
         stream_mode="messages",
