@@ -83,7 +83,7 @@ else:
 # create retriver using vector store 
 retriver = vector_store.as_retriever(search_kwargs={"k": 1})    # k tells how many results i want i return
 
-query = "What does nk dir command do?"
+query = "What does ls command do?"
 
 result_docs = retriver.invoke(query)
 
